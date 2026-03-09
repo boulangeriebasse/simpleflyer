@@ -84,10 +84,11 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 font-sans-jp flex flex-col md:flex-row h-screen overflow-hidden">
+<!-- 修正1: スマホ時は flex-col-reverse でプレビューを上にし、スクロールできるように修正 -->
+<body class="bg-gray-100 text-gray-800 font-sans-jp flex flex-col-reverse md:flex-row min-h-screen md:h-screen md:overflow-hidden">
 
     <!-- 左側：設定パネル -->
-    <div class="w-full md:w-[400px] lg:w-[450px] bg-white border-r border-gray-200 shadow-xl z-20 flex flex-col h-full">
+    <div class="w-full md:w-[400px] lg:w-[450px] bg-white border-t md:border-t-0 md:border-r border-gray-200 shadow-xl z-20 flex flex-col md:h-full">
         <div class="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center shrink-0">
             <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
@@ -326,7 +327,9 @@
     </div>
 
     <!-- 右側：プレビュー領域 -->
-    <div class="flex-1 bg-gray-900 flex flex-col items-center justify-center p-4 lg:p-8 overflow-y-auto relative w-full h-full">
+    <!-- 修正2: スマホ時の高さ制限を解除し、自然にスクロールするように修正 -->
+    <div class="flex-1 bg-gray-900 flex flex-col items-center justify-center p-4 lg:p-8 md:overflow-y-auto relative w-full md:h-full min-h-[500px]">
+        
         <!-- ダウンロード中のオーバーレイ -->
         <div id="loading-overlay" class="absolute inset-0 bg-gray-900/80 z-50 hidden flex-col items-center justify-center text-white">
             <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-white mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -386,6 +389,20 @@
 
             </div>
         </div>
+    </div>
+
+    <!-- 修正3: 画像保存用モーダル（スマホでの長押し保存対策） -->
+    <div id="result-modal" class="fixed inset-0 bg-black/90 z-[100] hidden flex-col items-center justify-center p-4">
+        <div class="flex justify-between items-center w-full max-w-md mb-2">
+            <p class="text-white text-sm font-bold text-yellow-300">📱 スマホの方は画像を長押しして保存</p>
+            <button id="btn-close-modal" class="text-white font-bold bg-gray-700 px-3 py-1 rounded hover:bg-gray-600">閉じる</button>
+        </div>
+        <!-- 生成された画像がここに入る -->
+        <img id="result-image" src="" class="max-w-full max-h-[70vh] object-contain border border-gray-600 shadow-2xl bg-white">
+        <button id="btn-modal-download" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-colors flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            PCの方はこちらでダウンロード
+        </button>
     </div>
 
     <!-- JavaScript ロジック -->
@@ -469,7 +486,13 @@
 
                 btnDownload: document.getElementById('btn-download'),
                 loadingOverlay: document.getElementById('loading-overlay'),
-                flyerPreview: document.getElementById('flyer-preview')
+                flyerPreview: document.getElementById('flyer-preview'),
+                
+                // Modal
+                resultModal: document.getElementById('result-modal'),
+                resultImage: document.getElementById('result-image'),
+                btnCloseModal: document.getElementById('btn-close-modal'),
+                btnModalDownload: document.getElementById('btn-modal-download')
             };
 
             // --- 初期化 ---
@@ -622,6 +645,12 @@
 
                 // ダウンロードボタン
                 els.btnDownload.addEventListener('click', downloadFlyer);
+                
+                // モーダル閉じるボタン
+                els.btnCloseModal.addEventListener('click', () => {
+                    els.resultModal.classList.add('hidden');
+                    els.resultModal.style.display = '';
+                });
             }
 
             // --- プレビュー更新ロジック ---
@@ -761,14 +790,21 @@
                     // Canvasを画像URLに変換
                     const imageURL = canvas.toDataURL('image/png');
 
-                    // ダウンロードリンクを生成してクリック
-                    const link = document.createElement('a');
-                    const safeTitle = els.title.value.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'flyer';
-                    link.download = `${safeTitle}.png`;
-                    link.href = imageURL;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+                    // 修正4: 自動ダウンロードではなく、確実に保存できるモーダルを表示する
+                    els.resultImage.src = imageURL;
+                    els.resultModal.classList.remove('hidden');
+                    els.resultModal.style.display = 'flex';
+
+                    // モーダル内のダウンロードボタンの処理 (PC用)
+                    els.btnModalDownload.onclick = () => {
+                        const link = document.createElement('a');
+                        const safeTitle = els.title.value.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'flyer';
+                        link.download = `${safeTitle}.png`;
+                        link.href = imageURL;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    };
 
                 } catch (error) {
                     console.error('画像の生成に失敗しました', error);
