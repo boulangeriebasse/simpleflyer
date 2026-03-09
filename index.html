@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Flyer Maker</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@500;700&family=Noto+Sans+JP:wght@400;700;900&family=Noto+Serif+JP:wght@700&family=RocknRoll+One&display=swap" rel="stylesheet">
+    <!-- html2canvas (画像保存用) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        /* フォント定義 */
+        .font-sans-jp { font-family: 'Noto Sans JP', sans-serif; }
+        .font-serif-jp { font-family: 'Noto Serif JP', serif; }
+        .font-pop { font-family: 'M PLUS Rounded 1c', sans-serif; }
+        .font-rock { font-family: 'RocknRoll One', sans-serif; }
+        .font-impact { font-family: 'Dela Gothic One', cursive; }
+
+        /* テキストシャドウ定義 */
+        .text-shadow-none { text-shadow: none; }
+        .text-shadow-sm { text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }
+        .text-shadow-md { text-shadow: 2px 2px 5px rgba(0,0,0,0.8); }
+        .text-shadow-lg { text-shadow: 3px 3px 8px rgba(0,0,0,0.9), 0 0 5px rgba(0,0,0,0.5); }
+        .text-shadow-outline { text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0px 2px 4px rgba(0,0,0,0.5); }
+        
+        /* 白文字/黒文字反転用の白縁取り */
+        .text-shadow-outline-white { text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0px 2px 4px rgba(0,0,0,0.3); }
+
+        /* スクロールバーのカスタマイズ（左パネル用） */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+
+        /* プレビューコンテナの基本設定 */
+        #flyer-preview {
+            /* 一般的な縦長画像比率 4:5 */
+            aspect-ratio: 4 / 5;
+            width: 100%;
+            max-width: 480px;
+            background-color: #1a202c;
+            position: relative;
+            overflow: hidden;
+            container-type: inline-size;
+        }
+
+        /* 背景画像の調整用 */
+        #preview-bg-image {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            min-width: 100%;
+            min-height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        /* 入力フォームのラベルスタイル */
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.25rem;
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            transition: border-color 0.2s;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans-jp flex flex-col md:flex-row h-screen overflow-hidden">
+
+    <!-- 左側：設定パネル -->
+    <div class="w-full md:w-[400px] lg:w-[450px] bg-white border-r border-gray-200 shadow-xl z-20 flex flex-col h-full">
+        <div class="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center shrink-0">
+            <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                Flyer Maker
+            </h1>
+            <button id="btn-download" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2 px-4 rounded shadow transition-colors flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                画像保存
+            </button>
+        </div>
+
+        <div class="p-4 overflow-y-auto custom-scrollbar flex-1 space-y-6">
+            
+            <!-- セクション: イベント基本情報 -->
+            <section class="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <h2 class="text-lg font-bold mb-4 border-b pb-2">イベント情報</h2>
+                <div class="space-y-3">
+                    <div>
+                        <label class="form-label">イベントタイトル</label>
+                        <input type="text" id="in-title" class="form-input" value="Event Name" placeholder="タイトルを入力">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="form-label">日付</label>
+                            <input type="text" id="in-date" class="form-input" value="" placeholder="例: 2026.12.24">
+                        </div>
+                        <div>
+                            <label class="form-label">会場名</label>
+                            <input type="text" id="in-venue" class="form-input" value="東京LIVEHOUSE" placeholder="ライブハウス名">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">会場住所・アクセスなど</label>
+                        <input type="text" id="in-address" class="form-input" value="東京都渋谷区架空町1-2-3 地下1階" placeholder="住所や道順など">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="form-label">OPEN</label>
+                            <input type="text" id="in-open" class="form-input" value="18:00" placeholder="18:00">
+                        </div>
+                        <div>
+                            <label class="form-label">START</label>
+                            <input type="text" id="in-start" class="form-input" value="18:30" placeholder="18:30">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="form-label mb-2">チケット料金設定</label>
+                        <div id="tickets-input-container" class="space-y-2">
+                            <div class="flex gap-2">
+                                <input type="text" class="form-input w-1/3 ticket-type" value="ADV" placeholder="種別 (例: ADV)">
+                                <input type="text" class="form-input w-2/3 ticket-price" value="¥3,000" placeholder="金額">
+                            </div>
+                            <div class="flex gap-2">
+                                <input type="text" class="form-input w-1/3 ticket-type" value="DOOR" placeholder="種別 (例: DOOR)">
+                                <input type="text" class="form-input w-2/3 ticket-price" value="¥3,500" placeholder="金額">
+                            </div>
+                            <div class="flex gap-2">
+                                <input type="text" class="form-input w-1/3 ticket-type" value="" placeholder="種別 (追加用)">
+                                <input type="text" class="form-input w-2/3 ticket-price" value="" placeholder="金額">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 bg-white border border-gray-200 rounded">
+                        <label class="flex items-center gap-2 text-sm font-bold text-gray-700 cursor-pointer mb-2">
+                            <input type="checkbox" id="in-drink-enabled" class="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded" checked>
+                            ドリンク代を表示する (+1D)
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm text-gray-500 w-12">+1D</span>
+                            <input type="text" id="in-drink" class="form-input flex-1" value="¥600" placeholder="ドリンク代">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- セクション: 出演バンド設定 -->
+            <section class="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <div class="flex justify-between items-end mb-4 border-b pb-2">
+                    <h2 class="text-lg font-bold">出演バンド</h2>
+                    <div class="w-32">
+                        <label class="form-label text-xs">バンド数 (1〜6)</label>
+                        <select id="in-band-count" class="form-input py-1">
+                            <option value="1">1バンド</option>
+                            <option value="2">2バンド</option>
+                            <option value="3">3バンド</option>
+                            <option value="4" selected>4バンド</option>
+                            <option value="5">5バンド</option>
+                            <option value="6">6バンド</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="form-label text-xs mb-0">アー写枠のサイズ調整 (レイアウト余白)</label>
+                        <button type="button" id="btn-reset-artist-size" class="text-[10px] text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 transition-colors">リセット</button>
+                    </div>
+                    <input type="range" id="in-artist-size" min="50" max="100" value="85" class="w-full accent-blue-600">
+                </div>
+
+                <div id="band-inputs-container" class="space-y-4">
+                    <!-- JSで動的に生成 -->
+                </div>
+            </section>
+
+            <!-- セクション: デザイン・背景設定 -->
+            <section class="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <h2 class="text-lg font-bold mb-4 border-b pb-2">デザイン・背景</h2>
+                <div class="space-y-4">
+                    <!-- フォント・色 -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="form-label">タイトルフォント</label>
+                            <select id="in-title-font" class="form-input">
+                                <option value="font-impact" selected>インパクト (Dela Gothic)</option>
+                                <option value="font-rock">ロック (RocknRoll)</option>
+                                <option value="font-sans-jp">ゴシック (Noto Sans)</option>
+                                <option value="font-serif-jp">明朝 (Noto Serif)</option>
+                                <option value="font-pop">ポップ (M PLUS)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">本文フォント</label>
+                            <select id="in-body-font" class="form-input">
+                                <option value="font-sans-jp" selected>ゴシック (Noto Sans)</option>
+                                <option value="font-serif-jp">明朝 (Noto Serif)</option>
+                                <option value="font-pop">ポップ (M PLUS)</option>
+                                <option value="font-rock">ロック (RocknRoll)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="form-label">タイトルの文字色</label>
+                            <div class="flex items-center gap-2">
+                                <input type="color" id="in-title-color" value="#ffffff" class="h-8 w-10 p-0 border-0 rounded cursor-pointer">
+                                <span class="text-xs text-gray-500" id="title-color-val">#ffffff</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label">本文の文字色</label>
+                            <div class="flex items-center gap-2">
+                                <input type="color" id="in-text-color" value="#ffffff" class="h-8 w-10 p-0 border-0 rounded cursor-pointer">
+                                <span class="text-xs text-gray-500" id="color-val">#ffffff</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">文字の影 (視認性UP)</label>
+                        <select id="in-text-shadow" class="form-input">
+                            <option value="text-shadow-none">なし</option>
+                            <option value="text-shadow-sm">弱</option>
+                            <option value="text-shadow-md" selected>中 (おすすめ)</option>
+                                <option value="text-shadow-lg">強</option>
+                                <option value="text-shadow-outline">黒フチドリ</option>
+                                <option value="text-shadow-outline-white">白フチドリ</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 背景タイプ -->
+                    <div class="pt-2">
+                        <label class="form-label">背景の種類</label>
+                        <div class="flex gap-4 mt-1">
+                            <label class="flex items-center gap-1 text-sm cursor-pointer">
+                                <input type="radio" name="bg-type" value="image" checked class="text-blue-600 focus:ring-blue-500"> 画像
+                            </label>
+                            <label class="flex items-center gap-1 text-sm cursor-pointer">
+                                <input type="radio" name="bg-type" value="color" class="text-blue-600 focus:ring-blue-500"> 単色
+                            </label>
+                            <label class="flex items-center gap-1 text-sm cursor-pointer">
+                                <input type="radio" name="bg-type" value="gradient" class="text-blue-600 focus:ring-blue-500"> グラデーション
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 背景詳細設定（JSで切り替え） -->
+                    <div id="bg-setting-image" class="space-y-3 p-3 bg-white rounded border border-gray-200">
+                        <div>
+                            <label class="form-label text-xs">背景画像をアップロード</label>
+                            <input type="file" id="in-bg-image" accept="image/*" class="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="form-label text-xs mb-0">画像の拡大率</label>
+                                <button type="button" id="btn-reset-bg-scale" class="text-[10px] text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 transition-colors">リセット</button>
+                            </div>
+                            <input type="range" id="in-bg-scale" min="100" max="250" value="100" class="w-full accent-blue-600">
+                        </div>
+                    </div>
+
+                    <div id="bg-setting-color" class="space-y-3 p-3 bg-white rounded border border-gray-200 hidden">
+                        <div>
+                            <label class="form-label text-xs">背景色</label>
+                            <input type="color" id="in-bg-color1" value="#1a202c" class="h-8 w-full p-0 border-0 rounded cursor-pointer">
+                        </div>
+                    </div>
+
+                    <div id="bg-setting-gradient" class="space-y-3 p-3 bg-white rounded border border-gray-200 hidden">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="form-label text-xs">色1</label>
+                                <input type="color" id="in-bg-color2" value="#1a202c" class="h-8 w-full p-0 border-0 rounded cursor-pointer">
+                            </div>
+                            <div>
+                                <label class="form-label text-xs">色2</label>
+                                <input type="color" id="in-bg-color3" value="#7f1d1d" class="h-8 w-full p-0 border-0 rounded cursor-pointer">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label text-xs">方向</label>
+                            <select id="in-bg-gradient-dir" class="form-input text-sm py-1">
+                                <option value="to bottom right">左上 → 右下</option>
+                                <option value="to bottom">上 → 下</option>
+                                <option value="to right">左 → 右</option>
+                                <option value="to top">下 → 上</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 全体フィルター -->
+                    <div class="pt-2">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="form-label text-xs mb-0">文字を読みやすくする（背景を暗くする）</label>
+                            <button type="button" id="btn-reset-bg-overlay" class="text-[10px] text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 transition-colors">リセット</button>
+                        </div>
+                        <input type="range" id="in-bg-overlay" min="0" max="90" value="40" class="w-full accent-blue-600">
+                    </div>
+                </div>
+            </section>
+            
+            <p class="text-xs text-center text-gray-400 pb-4">Created by Flyer Maker</p>
+        </div>
+    </div>
+
+    <!-- 右側：プレビュー領域 -->
+    <div class="flex-1 bg-gray-900 flex flex-col items-center justify-center p-4 lg:p-8 overflow-y-auto relative w-full h-full">
+        <!-- ダウンロード中のオーバーレイ -->
+        <div id="loading-overlay" class="absolute inset-0 bg-gray-900/80 z-50 hidden flex-col items-center justify-center text-white">
+            <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-white mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <p>画像を作成中...</p>
+        </div>
+
+        <div class="text-gray-400 text-sm mb-4 hidden md:block">プレビュー (比率 4:5)</div>
+
+        <!-- フライヤー本体 -->
+        <div id="flyer-preview" class="shadow-2xl">
+            <!-- 背景レイヤー -->
+            <div id="preview-bg-container" class="absolute inset-0 z-10 overflow-hidden bg-[#1a202c]">
+                <img id="preview-bg-image" src="./bg.jpg" alt="Background" style="transform: translate(-50%, -50%) scale(1);">
+            </div>
+            <!-- 背景オーバーレイ（暗くする用） -->
+            <div id="preview-bg-overlay" class="absolute inset-0 z-20 bg-black/40 pointer-events-none"></div>
+
+            <!-- コンテンツレイヤー -->
+            <div id="preview-content" class="relative z-30 w-full h-full flex flex-col justify-between p-6 lg:p-8 text-center text-white text-shadow-md">
+                
+                <!-- ヘッダー (日付、タイトル) -->
+                <div class="mt-2">
+                    <h2 id="out-date" class="text-xl lg:text-2xl font-bold tracking-widest mb-1 opacity-90"></h2>
+                    <h1 id="out-title" class="text-4xl lg:text-5xl font-impact tracking-tight leading-tight break-words"></h1>
+                </div>
+
+                <!-- アーティスト一覧エリア -->
+                <div id="out-artists-container" class="flex-1 flex items-center justify-center py-4 w-full">
+                    <div id="out-artists" class="flex flex-wrap justify-center content-center w-full" style="width: 85%;">
+                        <!-- JSで動的生成 -->
+                    </div>
+                </div>
+
+                <!-- フッター (会場、時間、料金) -->
+                <div class="mb-2 w-full max-w-sm mx-auto">
+                    <div class="mb-3">
+                        <p id="out-venue" class="text-2xl lg:text-3xl font-bold tracking-wide"></p>
+                        <p id="out-address" class="text-xs lg:text-sm mt-1 opacity-80"></p>
+                    </div>
+                    
+                    <div class="flex justify-center items-center gap-6 border-t border-b border-current py-2 mb-3">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] opacity-80">OPEN</span>
+                            <span id="out-open" class="text-lg font-bold leading-none mt-1"></span>
+                        </div>
+                        <div class="h-6 w-px bg-current opacity-30"></div>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] opacity-80">START</span>
+                            <span id="out-start" class="text-lg font-bold leading-none mt-1"></span>
+                        </div>
+                    </div>
+                    
+                    <div id="out-tickets" class="flex justify-center flex-wrap gap-x-4 gap-y-1 text-sm lg:text-base font-medium">
+                        <!-- JSで動的生成 -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript ロジック -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- 状態管理 ---
+            const state = {
+                bands: [
+                    { name: 'バンド1', image: 'https://placehold.co/400x400/2563eb/ffffff?text=Band+1' },
+                    { name: 'バンド2', image: 'https://placehold.co/400x400/db2777/ffffff?text=Band+2' },
+                    { name: 'バンド3', image: 'https://placehold.co/400x400/16a34a/ffffff?text=Band+3' },
+                    { name: 'バンド4', image: 'https://placehold.co/400x400/ea580c/ffffff?text=Band+4' },
+                    { name: 'バンド5', image: 'https://placehold.co/400x400/7c3aed/ffffff?text=Band+5' },
+                    { name: 'バンド6', image: 'https://placehold.co/400x400/0ea5e9/ffffff?text=Band+6' }
+                ]
+            };
+
+            // --- DOM要素の取得 ---
+            const els = {
+                // Inputs
+                title: document.getElementById('in-title'),
+                date: document.getElementById('in-date'),
+                venue: document.getElementById('in-venue'),
+                address: document.getElementById('in-address'),
+                open: document.getElementById('in-open'),
+                start: document.getElementById('in-start'),
+                
+                ticketTypes: document.querySelectorAll('.ticket-type'),
+                ticketPrices: document.querySelectorAll('.ticket-price'),
+                drinkEnabled: document.getElementById('in-drink-enabled'),
+                drink: document.getElementById('in-drink'),
+                
+                bandCount: document.getElementById('in-band-count'),
+                bandInputsContainer: document.getElementById('band-inputs-container'),
+                artistSize: document.getElementById('in-artist-size'),
+                
+                titleFont: document.getElementById('in-title-font'),
+                bodyFont: document.getElementById('in-body-font'),
+                titleColor: document.getElementById('in-title-color'),
+                titleColorVal: document.getElementById('title-color-val'),
+                textColor: document.getElementById('in-text-color'),
+                colorVal: document.getElementById('color-val'),
+                textShadow: document.getElementById('in-text-shadow'),
+                
+                bgTypes: document.querySelectorAll('input[name="bg-type"]'),
+                bgSettingImage: document.getElementById('bg-setting-image'),
+                bgSettingColor: document.getElementById('bg-setting-color'),
+                bgSettingGradient: document.getElementById('bg-setting-gradient'),
+                
+                bgImageInput: document.getElementById('in-bg-image'),
+                bgScale: document.getElementById('in-bg-scale'),
+                bgColor1: document.getElementById('in-bg-color1'),
+                bgColor2: document.getElementById('in-bg-color2'),
+                bgColor3: document.getElementById('in-bg-color3'),
+                bgGradientDir: document.getElementById('in-bg-gradient-dir'),
+                bgOverlay: document.getElementById('in-bg-overlay'),
+
+                // Reset buttons
+                btnResetArtistSize: document.getElementById('btn-reset-artist-size'),
+                btnResetBgScale: document.getElementById('btn-reset-bg-scale'),
+                btnResetBgOverlay: document.getElementById('btn-reset-bg-overlay'),
+
+                // Outputs
+                outTitle: document.getElementById('out-title'),
+                outDate: document.getElementById('out-date'),
+                outVenue: document.getElementById('out-venue'),
+                outAddress: document.getElementById('out-address'),
+                outOpen: document.getElementById('out-open'),
+                outStart: document.getElementById('out-start'),
+                
+                outTickets: document.getElementById('out-tickets'),
+                
+                outArtistsContainer: document.getElementById('out-artists'),
+                outArtistsWrapper: document.getElementById('out-artists-container').firstElementChild,
+                
+                previewContent: document.getElementById('preview-content'),
+                previewBgContainer: document.getElementById('preview-bg-container'),
+                previewBgImage: document.getElementById('preview-bg-image'),
+                previewBgOverlay: document.getElementById('preview-bg-overlay'),
+
+                btnDownload: document.getElementById('btn-download'),
+                loadingOverlay: document.getElementById('loading-overlay'),
+                flyerPreview: document.getElementById('flyer-preview')
+            };
+
+            // --- 初期化 ---
+            function init() {
+                // 日付の初期値を今日に設定
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                const dayStr = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][today.getDay()];
+                els.date.value = `${yyyy}.${mm}.${dd} ${dayStr}`;
+
+                renderBandInputs();
+                setupEventListeners();
+                updatePreview();
+            }
+
+            // --- バンド入力欄の生成 ---
+            function renderBandInputs() {
+                const count = parseInt(els.bandCount.value);
+                els.bandInputsContainer.innerHTML = '';
+
+                for (let i = 0; i < count; i++) {
+                    const band = state.bands[i];
+                    const div = document.createElement('div');
+                    div.className = 'p-3 bg-white border border-gray-200 rounded-lg shadow-sm';
+                    div.innerHTML = `
+                        <div class="mb-2">
+                            <label class="form-label text-xs">バンド名 ${i + 1}</label>
+                            <input type="text" class="form-input py-1 band-name-input" data-index="${i}" value="${band.name}" placeholder="バンド名">
+                        </div>
+                        <div>
+                            <label class="form-label text-xs flex justify-between">
+                                アー写 (推奨: 正方形)
+                                ${band.image && !band.image.includes('placehold.co') ? '<span class="text-green-600 text-[10px]">設定済</span>' : ''}
+                            </label>
+                            <input type="file" accept="image/*" class="text-xs w-full band-image-input" data-index="${i}">
+                        </div>
+                    `;
+                    els.bandInputsContainer.appendChild(div);
+                }
+
+                // 動的生成された要素にイベントリスナーを追加
+                document.querySelectorAll('.band-name-input').forEach(input => {
+                    input.addEventListener('input', (e) => {
+                        const idx = e.target.dataset.index;
+                        state.bands[idx].name = e.target.value;
+                        updateArtistsPreview();
+                    });
+                });
+
+                document.querySelectorAll('.band-image-input').forEach(input => {
+                    input.addEventListener('change', (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                                const idx = e.target.dataset.index;
+                                state.bands[idx].image = event.target.result;
+                                renderBandInputs(); // 「設定済」ラベル更新のため再描画
+                                updateArtistsPreview();
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                });
+            }
+
+            // --- イベントリスナーの登録 ---
+            function setupEventListeners() {
+                // テキスト入力の即時反映
+                const textInputs = [els.title, els.date, els.venue, els.address, els.open, els.start, els.drink];
+                textInputs.forEach(input => {
+                    input.addEventListener('input', updateTextPreview);
+                });
+
+                els.ticketTypes.forEach(input => input.addEventListener('input', updateTextPreview));
+                els.ticketPrices.forEach(input => input.addEventListener('input', updateTextPreview));
+                els.drinkEnabled.addEventListener('change', updateTextPreview);
+
+                // デザイン系の即時反映
+                els.titleFont.addEventListener('change', updateDesignPreview);
+                els.bodyFont.addEventListener('change', updateDesignPreview);
+                els.titleColor.addEventListener('input', (e) => {
+                    els.titleColorVal.textContent = e.target.value;
+                    updateDesignPreview();
+                });
+                els.textColor.addEventListener('input', (e) => {
+                    els.colorVal.textContent = e.target.value;
+                    updateDesignPreview();
+                });
+                els.textShadow.addEventListener('change', updateDesignPreview);
+                els.artistSize.addEventListener('input', updateArtistsPreview);
+
+                // 背景タイプの切り替え
+                els.bgTypes.forEach(radio => {
+                    radio.addEventListener('change', (e) => {
+                        els.bgSettingImage.classList.add('hidden');
+                        els.bgSettingColor.classList.add('hidden');
+                        els.bgSettingGradient.classList.add('hidden');
+                        
+                        if (e.target.value === 'image') els.bgSettingImage.classList.remove('hidden');
+                        if (e.target.value === 'color') els.bgSettingColor.classList.remove('hidden');
+                        if (e.target.value === 'gradient') els.bgSettingGradient.classList.remove('hidden');
+                        
+                        updateBackgroundPreview();
+                    });
+                });
+
+                // 背景画像のアップロード
+                els.bgImageInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            els.previewBgImage.src = event.target.result;
+                            // 自動的に画像タイプを選択
+                            document.querySelector('input[name="bg-type"][value="image"]').click();
+                            updateBackgroundPreview();
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+
+                // 背景設定の変更
+                const bgInputs = [els.bgScale, els.bgColor1, els.bgColor2, els.bgColor3, els.bgGradientDir, els.bgOverlay];
+                bgInputs.forEach(input => {
+                    input.addEventListener('input', updateBackgroundPreview);
+                });
+
+                // スライダーのリセットボタン
+                els.btnResetArtistSize.addEventListener('click', () => {
+                    els.artistSize.value = 85;
+                    updateArtistsPreview();
+                });
+                els.btnResetBgScale.addEventListener('click', () => {
+                    els.bgScale.value = 100;
+                    updateBackgroundPreview();
+                });
+                els.btnResetBgOverlay.addEventListener('click', () => {
+                    els.bgOverlay.value = 40;
+                    updateBackgroundPreview();
+                });
+
+                // バンド数変更
+                els.bandCount.addEventListener('change', () => {
+                    renderBandInputs();
+                    updateArtistsPreview();
+                });
+
+                // ダウンロードボタン
+                els.btnDownload.addEventListener('click', downloadFlyer);
+            }
+
+            // --- プレビュー更新ロジック ---
+            function updatePreview() {
+                updateTextPreview();
+                updateDesignPreview();
+                updateBackgroundPreview();
+                updateArtistsPreview();
+            }
+
+            // テキスト関連の更新
+            function updateTextPreview() {
+                els.outTitle.textContent = els.title.value;
+                els.outDate.textContent = els.date.value;
+                els.outVenue.textContent = els.venue.value;
+                els.outAddress.textContent = els.address.value;
+                els.outOpen.textContent = els.open.value;
+                els.outStart.textContent = els.start.value;
+                
+                // チケット料金の更新
+                els.outTickets.innerHTML = '';
+                for (let i = 0; i < els.ticketTypes.length; i++) {
+                    const type = els.ticketTypes[i].value.trim();
+                    const price = els.ticketPrices[i].value.trim();
+                    
+                    if (type || price) {
+                        const div = document.createElement('div');
+                        div.innerHTML = `${type} <span class="ml-1 font-bold">${price}</span>`;
+                        els.outTickets.appendChild(div);
+                    }
+                }
+                
+                // ドリンク代の更新
+                if (els.drinkEnabled.checked) {
+                    const drinkDiv = document.createElement('div');
+                    drinkDiv.innerHTML = `+1D <span class="ml-1 font-bold">${els.drink.value}</span>`;
+                    els.outTickets.appendChild(drinkDiv);
+                }
+            }
+
+            // デザイン関連の更新（フォント、色、影）
+            function updateDesignPreview() {
+                // フォントリセット
+                els.previewContent.className = els.previewContent.className.replace(/font-\w+(-\w+)?/g, '');
+                els.outTitle.className = els.outTitle.className.replace(/font-\w+(-\w+)?/g, '');
+
+                // フォント適用
+                els.previewContent.classList.add(els.bodyFont.value);
+                els.outTitle.classList.add(els.titleFont.value);
+
+                // テキストカラー
+                els.previewContent.style.color = els.textColor.value;
+                els.outTitle.style.color = els.titleColor.value;
+
+                // テキストシャドウ
+                els.previewContent.className = els.previewContent.className.replace(/text-shadow-\w+(-\w+)?/g, '');
+                els.previewContent.classList.add(els.textShadow.value);
+            }
+
+            // 背景の更新
+            function updateBackgroundPreview() {
+                const bgType = document.querySelector('input[name="bg-type"]:checked').value;
+                
+                // オーバーレイの暗さ
+                els.previewBgOverlay.style.backgroundColor = `rgba(0, 0, 0, ${els.bgOverlay.value / 100})`;
+
+                if (bgType === 'image') {
+                    els.previewBgImage.style.display = 'block';
+                    els.previewBgContainer.style.background = 'transparent';
+                    // 画像のスケール調整
+                    els.previewBgImage.style.transform = `translate(-50%, -50%) scale(${els.bgScale.value / 100})`;
+                } 
+                else if (bgType === 'color') {
+                    els.previewBgImage.style.display = 'none';
+                    els.previewBgContainer.style.background = els.bgColor1.value;
+                } 
+                else if (bgType === 'gradient') {
+                    els.previewBgImage.style.display = 'none';
+                    els.previewBgContainer.style.background = `linear-gradient(${els.bgGradientDir.value}, ${els.bgColor2.value}, ${els.bgColor3.value})`;
+                }
+            }
+
+            // アーティスト一覧の更新
+            function updateArtistsPreview() {
+                const count = parseInt(els.bandCount.value);
+                els.outArtistsContainer.innerHTML = '';
+                
+                // 余白（全体の幅）調整
+                els.outArtistsWrapper.style.width = `${els.artistSize.value}%`;
+
+                // カードの幅（Tailwindのクラス）を決定
+                let itemClass = '';
+                if (count === 1) itemClass = 'w-full max-w-sm';
+                else if (count === 2) itemClass = 'w-1/2 p-2';
+                else if (count === 3) itemClass = 'w-1/3 p-1.5';
+                else if (count === 4) itemClass = 'w-1/2 p-2';
+                else if (count === 5) itemClass = 'w-1/3 p-1.5';
+                else if (count === 6) itemClass = 'w-1/3 p-1';
+
+                for (let i = 0; i < count; i++) {
+                    const band = state.bands[i];
+                    
+                    // アスペクト比を保ちつつ切り抜くコンテナ
+                    const item = document.createElement('div');
+                    item.className = `${itemClass} flex flex-col items-center`;
+                    
+                    // フォントサイズも動的調整
+                    const nameSize = count <= 2 ? 'text-lg lg:text-xl' : (count <= 4 ? 'text-base lg:text-lg' : 'text-sm lg:text-base');
+                    const imgPadding = count <= 2 ? 'pb-[100%]' : 'pb-[100%]'; // 常に正方形にする
+
+                    item.innerHTML = `
+                        <div class="w-full relative rounded-lg overflow-hidden shadow-lg border-2 border-white/20" style="${imgPadding ? `padding-bottom: ${imgPadding};` : ''}">
+                            <img src="${band.image}" alt="${band.name}" class="absolute inset-0 w-full h-full object-cover">
+                        </div>
+                        <div class="mt-2 font-bold leading-tight ${nameSize} break-words w-full px-1">
+                            ${band.name || `Band ${i+1}`}
+                        </div>
+                    `;
+                    els.outArtistsContainer.appendChild(item);
+                }
+            }
+
+            // --- 画像としてダウンロード ---
+            async function downloadFlyer() {
+                els.loadingOverlay.classList.remove('hidden');
+                els.loadingOverlay.style.display = 'flex';
+
+                try {
+                    // html2canvasで描画。画像のCORSエラーを回避する設定を入れる
+                    const canvas = await html2canvas(els.flyerPreview, {
+                        scale: 2, // 高画質化
+                        useCORS: true,
+                        allowTaint: true,
+                        backgroundColor: null,
+                    });
+
+                    // Canvasを画像URLに変換
+                    const imageURL = canvas.toDataURL('image/png');
+
+                    // ダウンロードリンクを生成してクリック
+                    const link = document.createElement('a');
+                    const safeTitle = els.title.value.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'flyer';
+                    link.download = `${safeTitle}.png`;
+                    link.href = imageURL;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                } catch (error) {
+                    console.error('画像の生成に失敗しました', error);
+                    alert('画像の作成に失敗しました。背景画像等に外部URLを使用している場合、セキュリティ制限がかかることがあります。ご自身で画像をアップロードしてお試しください。');
+                } finally {
+                    els.loadingOverlay.classList.add('hidden');
+                    els.loadingOverlay.style.display = '';
+                }
+            }
+
+            // 実行
+            init();
+        });
+    </script>
+</body>
+</html>
