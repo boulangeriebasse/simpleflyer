@@ -84,7 +84,7 @@
         }
     </style>
 </head>
-<!-- 修正1: スマホ時は flex-col-reverse でプレビューを上にし、スクロールできるように修正 -->
+<!-- スマホ時は flex-col-reverse でプレビューを上にし、スクロールできるように -->
 <body class="bg-gray-100 text-gray-800 font-sans-jp flex flex-col-reverse md:flex-row min-h-screen md:h-screen md:overflow-hidden">
 
     <!-- 左側：設定パネル -->
@@ -327,7 +327,7 @@
     </div>
 
     <!-- 右側：プレビュー領域 -->
-    <!-- 修正2: スマホ時の高さ制限を解除し、自然にスクロールするように修正 -->
+    <!-- スマホ時の高さ制限を解除し、自然にスクロールするように -->
     <div class="flex-1 bg-gray-900 flex flex-col items-center justify-center p-4 lg:p-8 md:overflow-y-auto relative w-full md:h-full min-h-[500px]">
         
         <!-- ダウンロード中のオーバーレイ -->
@@ -391,7 +391,7 @@
         </div>
     </div>
 
-    <!-- 修正3: 画像保存用モーダル（スマホでの長押し保存対策） -->
+    <!-- 画像保存用モーダル（スマホでの長押し保存対策） -->
     <div id="result-modal" class="fixed inset-0 bg-black/90 z-[100] hidden flex-col items-center justify-center p-4">
         <div class="flex justify-between items-center w-full max-w-md mb-2">
             <p class="text-white text-sm font-bold text-yellow-300">📱 スマホの方は画像を長押しして保存</p>
@@ -409,15 +409,18 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             
+            // 外部画像エラーを回避するためのコード内蔵ダミー画像 (SVG Data URL)
+            const dummyImage = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='%23cccccc'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='32' font-weight='bold' fill='%23666666' text-anchor='middle' dominant-baseline='middle'%3ENo Image%3C/text%3E%3C/svg%3E";
+
             // --- 状態管理 ---
             const state = {
                 bands: [
-                    { name: 'バンド1', image: 'https://placehold.co/400x400/2563eb/ffffff?text=Band+1' },
-                    { name: 'バンド2', image: 'https://placehold.co/400x400/db2777/ffffff?text=Band+2' },
-                    { name: 'バンド3', image: 'https://placehold.co/400x400/16a34a/ffffff?text=Band+3' },
-                    { name: 'バンド4', image: 'https://placehold.co/400x400/ea580c/ffffff?text=Band+4' },
-                    { name: 'バンド5', image: 'https://placehold.co/400x400/7c3aed/ffffff?text=Band+5' },
-                    { name: 'バンド6', image: 'https://placehold.co/400x400/0ea5e9/ffffff?text=Band+6' }
+                    { name: 'バンド1', image: dummyImage },
+                    { name: 'バンド2', image: dummyImage },
+                    { name: 'バンド3', image: dummyImage },
+                    { name: 'バンド4', image: dummyImage },
+                    { name: 'バンド5', image: dummyImage },
+                    { name: 'バンド6', image: dummyImage }
                 ]
             };
 
@@ -527,7 +530,7 @@
                         <div>
                             <label class="form-label text-xs flex justify-between">
                                 アー写 (推奨: 正方形)
-                                ${band.image && !band.image.includes('placehold.co') ? '<span class="text-green-600 text-[10px]">設定済</span>' : ''}
+                                ${band.image && !band.image.startsWith('data:image/svg+xml') ? '<span class="text-green-600 text-[10px]">設定済</span>' : ''}
                             </label>
                             <input type="file" accept="image/*" class="text-xs w-full band-image-input" data-index="${i}">
                         </div>
@@ -790,7 +793,7 @@
                     // Canvasを画像URLに変換
                     const imageURL = canvas.toDataURL('image/png');
 
-                    // 修正4: 自動ダウンロードではなく、確実に保存できるモーダルを表示する
+                    // 自動ダウンロードではなく、確実に保存できるモーダルを表示する
                     els.resultImage.src = imageURL;
                     els.resultModal.classList.remove('hidden');
                     els.resultModal.style.display = 'flex';
