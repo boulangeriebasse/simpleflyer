@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Web Flyer Maker</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -48,16 +48,13 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
 
-        /* プレビューコンテナの基本設定 */
+        /* プレビューコンテナの基本設定（物理的な解像度を固定） */
         #flyer-preview {
-            /* 一般的な縦長画像比率 4:5 */
-            aspect-ratio: 4 / 5;
-            width: 100%;
-            max-width: 480px;
+            width: 400px;
+            height: 500px;
             background-color: #1a202c;
             position: relative;
             overflow: hidden;
-            container-type: inline-size;
         }
 
         /* 背景画像の調整用 */
@@ -95,11 +92,12 @@
         }
     </style>
 </head>
-<!-- スマホ時は flex-col-reverse でプレビューを上にし、スクロールできるように -->
-<body class="bg-gray-100 text-gray-800 font-sans-jp flex flex-col-reverse md:flex-row min-h-screen md:h-screen md:overflow-hidden">
+<!-- 全体を画面高さに固定（h-[100dvh]）し、スマホ時は縦積み反転、PC時は横並びに -->
+<body class="bg-gray-100 text-gray-800 font-sans-jp flex flex-col-reverse md:flex-row h-[100dvh] w-full overflow-hidden">
 
-    <!-- 左側：設定パネル -->
-    <div class="w-full md:w-[400px] lg:w-[450px] bg-white border-t md:border-t-0 md:border-r border-gray-200 shadow-xl z-20 flex flex-col md:h-full">
+    <!-- 左側／下側：設定パネル -->
+    <!-- スマホでは下55%を使用、PCでは横幅固定で高さ100% -->
+    <div class="w-full md:w-[400px] lg:w-[450px] h-[55dvh] md:h-full bg-white border-t md:border-t-0 md:border-r border-gray-200 shadow-xl z-20 flex flex-col">
         <div class="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center shrink-0">
             <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
@@ -379,70 +377,72 @@
         </div>
     </div>
 
-    <!-- 右側：プレビュー領域 -->
-    <!-- スマホ時の高さ制限を解除し、自然にスクロールするように -->
-    <div class="flex-1 bg-gray-900 flex flex-col items-center justify-center p-4 lg:p-8 md:overflow-y-auto relative w-full md:h-full min-h-[500px]">
+    <!-- 右側／上側：プレビュー領域 -->
+    <!-- スマホでは上45%を固定、PCでは残りの横幅全体 -->
+    <div id="preview-wrapper" class="w-full md:flex-1 h-[45dvh] md:h-full bg-gray-900 flex items-center justify-center relative overflow-hidden">
         
-        <!-- ダウンロード中のオーバーレイ -->
-        <div id="loading-overlay" class="absolute inset-0 bg-gray-900/80 z-50 hidden flex-col items-center justify-center text-white">
-            <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-white mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            <p>画像を作成中...</p>
-        </div>
+        <div class="text-gray-400 text-xs md:text-sm absolute top-2 left-0 w-full text-center z-10 pointer-events-none">プレビュー</div>
 
-        <div class="text-gray-400 text-sm mb-4 hidden md:block">プレビュー (比率 4:5)</div>
-
-        <!-- フライヤー本体 -->
-        <div id="flyer-preview" class="shadow-2xl">
-            <!-- 背景レイヤー -->
-            <div id="preview-bg-container" class="absolute inset-0 z-10 overflow-hidden bg-[#1a202c]">
-                <img id="preview-bg-image" src="./bg.jpg" alt="Background" style="transform: translate(-50%, -50%) scale(1);">
-            </div>
-            <!-- 背景オーバーレイ（暗くする用） -->
-            <div id="preview-bg-overlay" class="absolute inset-0 z-20 bg-black/40 pointer-events-none"></div>
-
-            <!-- コンテンツレイヤー -->
-            <!-- 初期設定のパディング(p-6 lg:p-8)を削除し、JSで動的に制御する形に変更 -->
-            <div id="preview-content" class="relative z-30 w-full h-full flex flex-col justify-between text-center text-white text-shadow-md">
-                
-                <!-- ヘッダー (日付、タイトル) -->
-                <div class="mt-1">
-                    <h2 id="out-date" class="text-xl lg:text-2xl font-bold tracking-widest mb-0.5 opacity-90"></h2>
-                    <h1 id="out-title" class="font-impact tracking-tight break-words"></h1>
+        <!-- プレビュー枠をスケーリングして常に全体が見えるようにするラッパー -->
+        <div id="scale-container" class="origin-center mt-6 md:mt-0">
+            <!-- フライヤー本体（物理サイズ固定） -->
+            <div id="flyer-preview" class="shadow-2xl">
+                <!-- 背景レイヤー -->
+                <div id="preview-bg-container" class="absolute inset-0 z-10 overflow-hidden bg-[#1a202c]">
+                    <img id="preview-bg-image" src="./bg.jpg" alt="Background" style="transform: translate(-50%, -50%) scale(1);">
                 </div>
+                <!-- 背景オーバーレイ（暗くする用） -->
+                <div id="preview-bg-overlay" class="absolute inset-0 z-20 bg-black/40 pointer-events-none"></div>
 
-                <!-- アーティスト一覧エリア -->
-                <div id="out-artists-container" class="flex-1 flex items-center justify-center py-2 w-full">
-                    <div id="out-artists" class="flex flex-wrap justify-center content-center w-full" style="width: 85%;">
-                        <!-- JSで動的生成 -->
-                    </div>
-                </div>
-
-                <!-- フッター (会場、時間、料金) -->
-                <div class="mb-1 w-full max-w-sm mx-auto">
-                    <div class="mb-2">
-                        <p id="out-venue" class="text-2xl lg:text-3xl font-bold tracking-wide leading-tight"></p>
-                        <p id="out-address" class="text-xs lg:text-sm mt-0.5 opacity-80"></p>
-                    </div>
+                <!-- コンテンツレイヤー -->
+                <div id="preview-content" class="relative z-30 w-full h-full flex flex-col justify-between text-center text-white text-shadow-md">
                     
-                    <div class="flex justify-center items-center gap-6 border-t border-b border-current py-1.5 mb-2">
-                        <div class="flex flex-col">
-                            <span class="text-[10px] opacity-80">OPEN</span>
-                            <span id="out-open" class="text-lg font-bold leading-none mt-0.5"></span>
-                        </div>
-                        <div class="h-6 w-px bg-current opacity-30"></div>
-                        <div class="flex flex-col">
-                            <span class="text-[10px] opacity-80">START</span>
-                            <span id="out-start" class="text-lg font-bold leading-none mt-0.5"></span>
+                    <!-- ヘッダー (日付、タイトル) -->
+                    <div class="mt-1">
+                        <h2 id="out-date" class="text-xl lg:text-2xl font-bold tracking-widest mb-0.5 opacity-90"></h2>
+                        <h1 id="out-title" class="font-impact tracking-tight break-words"></h1>
+                    </div>
+
+                    <!-- アーティスト一覧エリア -->
+                    <div id="out-artists-container" class="flex-1 flex items-center justify-center py-2 w-full">
+                        <div id="out-artists" class="flex flex-wrap justify-center content-center w-full" style="width: 85%;">
+                            <!-- JSで動的生成 -->
                         </div>
                     </div>
-                    
-                    <div id="out-tickets" class="flex justify-center flex-wrap gap-x-4 gap-y-0.5 text-sm lg:text-base font-medium">
-                        <!-- JSで動的生成 -->
-                    </div>
-                </div>
 
+                    <!-- フッター (会場、時間、料金) -->
+                    <div class="mb-1 w-full max-w-sm mx-auto">
+                        <div class="mb-2">
+                            <p id="out-venue" class="text-2xl lg:text-3xl font-bold tracking-wide leading-tight"></p>
+                            <p id="out-address" class="text-xs lg:text-sm mt-0.5 opacity-80"></p>
+                        </div>
+                        
+                        <div class="flex justify-center items-center gap-6 border-t border-b border-current py-1.5 mb-2">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] opacity-80">OPEN</span>
+                                <span id="out-open" class="text-lg font-bold leading-none mt-0.5"></span>
+                            </div>
+                            <div class="h-6 w-px bg-current opacity-30"></div>
+                            <div class="flex flex-col">
+                                <span class="text-[10px] opacity-80">START</span>
+                                <span id="out-start" class="text-lg font-bold leading-none mt-0.5"></span>
+                            </div>
+                        </div>
+                        
+                        <div id="out-tickets" class="flex justify-center flex-wrap gap-x-4 gap-y-0.5 text-sm lg:text-base font-medium">
+                            <!-- JSで動的生成 -->
+                        </div>
+                    </div>
+
+                </div>
             </div>
         </div>
+    </div>
+
+    <!-- ダウンロード中のオーバーレイ (画面全体) -->
+    <div id="loading-overlay" class="fixed inset-0 bg-gray-900/80 z-[110] hidden flex-col items-center justify-center text-white">
+        <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-white mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        <p>画像を作成中...</p>
     </div>
 
     <!-- 画像保存用モーダル（スマホでの長押し保存対策） -->
@@ -533,6 +533,8 @@
                 btnResetPadding: document.getElementById('btn-reset-padding'),
 
                 // Outputs
+                previewWrapper: document.getElementById('preview-wrapper'),
+                scaleContainer: document.getElementById('scale-container'),
                 outTitle: document.getElementById('out-title'),
                 outDate: document.getElementById('out-date'),
                 outVenue: document.getElementById('out-venue'),
@@ -576,6 +578,31 @@
                 renderBandInputs();
                 setupEventListeners();
                 updatePreview();
+
+                // 初回のプレビュースケーリング
+                fitPreview();
+            }
+
+            // --- プレビューのスケーリング機能（スマホ対応） ---
+            function fitPreview() {
+                if (!els.previewWrapper || !els.scaleContainer) return;
+
+                // プレビュー領域の利用可能な広さ（余白を引く）
+                const padding = window.innerWidth >= 768 ? 48 : 24; 
+                const availableWidth = els.previewWrapper.clientWidth - padding;
+                const availableHeight = els.previewWrapper.clientHeight - padding;
+                
+                // フライヤーの物理解像度 (400x500固定)
+                const targetWidth = 400;
+                const targetHeight = 500;
+                
+                const scaleX = availableWidth / targetWidth;
+                const scaleY = availableHeight / targetHeight;
+                
+                // 画面に収まるように最小倍率を選択（最大2倍まで）
+                const scale = Math.min(scaleX, scaleY, 2);
+                
+                els.scaleContainer.style.transform = `scale(${scale})`;
             }
 
             function updateLayoutSelectors() {
@@ -639,6 +666,9 @@
 
             // --- イベントリスナーの登録 ---
             function setupEventListeners() {
+                // 画面リサイズ時にプレビューを拡大縮小
+                window.addEventListener('resize', fitPreview);
+
                 // テキスト入力の即時反映
                 const textInputs = [els.title, els.date, els.venue, els.address, els.open, els.start, els.drink];
                 textInputs.forEach(input => {
