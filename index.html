@@ -31,6 +31,17 @@
         /* 白文字/黒文字反転用の白縁取り */
         .text-shadow-outline-white { text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0px 2px 4px rgba(0,0,0,0.3); }
 
+        /* タイトルのスケール用 */
+        #out-title {
+            font-size: calc(var(--title-scale, 1) * 2.25rem);
+            line-height: 1.1;
+        }
+        @media (min-width: 1024px) {
+            #out-title {
+                font-size: calc(var(--title-scale, 1) * 3rem);
+            }
+        }
+
         /* スクロールバーのカスタマイズ（左パネル用） */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
@@ -108,7 +119,7 @@
                 <div class="space-y-3">
                     <div>
                         <label class="form-label">イベントタイトル</label>
-                        <input type="text" id="in-title" class="form-input" value="Event Name" placeholder="タイトルを入力">
+                        <textarea id="in-title" class="form-input resize-y" rows="2" placeholder="タイトルを入力">Event Name</textarea>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
@@ -265,9 +276,12 @@
                     <!-- 背景タイプ -->
                     <div class="pt-2">
                         <label class="form-label">背景の種類</label>
-                        <div class="flex gap-4 mt-1">
+                        <div class="flex gap-4 mt-1 flex-wrap">
                             <label class="flex items-center gap-1 text-sm cursor-pointer">
-                                <input type="radio" name="bg-type" value="image" checked class="text-blue-600 focus:ring-blue-500"> 画像
+                                <input type="radio" name="bg-type" value="preset" checked class="text-blue-600 focus:ring-blue-500"> プリセット
+                            </label>
+                            <label class="flex items-center gap-1 text-sm cursor-pointer">
+                                <input type="radio" name="bg-type" value="image" class="text-blue-600 focus:ring-blue-500"> 画像
                             </label>
                             <label class="flex items-center gap-1 text-sm cursor-pointer">
                                 <input type="radio" name="bg-type" value="color" class="text-blue-600 focus:ring-blue-500"> 単色
@@ -279,18 +293,28 @@
                     </div>
 
                     <!-- 背景詳細設定（JSで切り替え） -->
-                    <div id="bg-setting-image" class="space-y-3 p-3 bg-white rounded border border-gray-200">
-                        <div>
-                            <label class="form-label text-xs">背景画像をアップロード</label>
-                            <input type="file" id="in-bg-image" accept="image/*" class="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <div id="bg-setting-preset" class="p-3 bg-white rounded border border-gray-200">
+                        <label class="form-label text-xs">プリセット画像を選択</label>
+                        <select id="in-bg-preset" class="form-input text-sm py-1">
+                            <option value="./bg.jpg" selected>プリセット 1</option>
+                            <option value="./bg2.jpg">プリセット 2</option>
+                            <option value="./bg3.jpg">プリセット 3</option>
+                            <option value="./bg4.jpg">プリセット 4</option>
+                            <option value="./bg5.jpg">プリセット 5</option>
+                        </select>
+                    </div>
+
+                    <div id="bg-setting-image" class="p-3 bg-white rounded border border-gray-200 hidden">
+                        <label class="form-label text-xs">背景画像をアップロード</label>
+                        <input type="file" id="in-bg-image" accept="image/*" class="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+
+                    <div id="bg-setting-scale" class="p-3 bg-white rounded border border-gray-200">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="form-label text-xs mb-0">画像の拡大率</label>
+                            <button type="button" id="btn-reset-bg-scale" class="text-[10px] text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 transition-colors">リセット</button>
                         </div>
-                        <div>
-                            <div class="flex justify-between items-center mb-1">
-                                <label class="form-label text-xs mb-0">画像の拡大率</label>
-                                <button type="button" id="btn-reset-bg-scale" class="text-[10px] text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 transition-colors">リセット</button>
-                            </div>
-                            <input type="range" id="in-bg-scale" min="100" max="250" value="100" class="w-full accent-blue-600">
-                        </div>
+                        <input type="range" id="in-bg-scale" min="100" max="250" value="100" class="w-full accent-blue-600">
                     </div>
 
                     <div id="bg-setting-color" class="space-y-3 p-3 bg-white rounded border border-gray-200 hidden">
@@ -328,7 +352,16 @@
                             <label class="form-label text-xs mb-0">文字を読みやすくする（背景を暗くする）</label>
                             <button type="button" id="btn-reset-bg-overlay" class="text-[10px] text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 transition-colors">リセット</button>
                         </div>
-                        <input type="range" id="in-bg-overlay" min="0" max="90" value="40" class="w-full accent-blue-600">
+                        <input type="range" id="in-bg-overlay" min="0" max="90" value="20" class="w-full accent-blue-600">
+                    </div>
+
+                    <!-- タイトルの大きさ -->
+                    <div class="pt-2">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="form-label text-xs mb-0">タイトルの大きさ</label>
+                            <button type="button" id="btn-reset-title-size" class="text-[10px] text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 transition-colors">リセット</button>
+                        </div>
+                        <input type="range" id="in-title-size" min="50" max="200" value="100" class="w-full accent-blue-600">
                     </div>
                     
                     <!-- 全体の余白 -->
@@ -374,7 +407,7 @@
                 <!-- ヘッダー (日付、タイトル) -->
                 <div class="mt-1">
                     <h2 id="out-date" class="text-xl lg:text-2xl font-bold tracking-widest mb-0.5 opacity-90"></h2>
-                    <h1 id="out-title" class="text-4xl lg:text-5xl font-impact tracking-tight leading-none break-words"></h1>
+                    <h1 id="out-title" class="font-impact tracking-tight break-words"></h1>
                 </div>
 
                 <!-- アーティスト一覧エリア -->
@@ -475,10 +508,13 @@
                 textShadow: document.getElementById('in-text-shadow'),
                 
                 bgTypes: document.querySelectorAll('input[name="bg-type"]'),
+                bgSettingPreset: document.getElementById('bg-setting-preset'),
                 bgSettingImage: document.getElementById('bg-setting-image'),
+                bgSettingScale: document.getElementById('bg-setting-scale'),
                 bgSettingColor: document.getElementById('bg-setting-color'),
                 bgSettingGradient: document.getElementById('bg-setting-gradient'),
                 
+                bgPreset: document.getElementById('in-bg-preset'),
                 bgImageInput: document.getElementById('in-bg-image'),
                 bgScale: document.getElementById('in-bg-scale'),
                 bgColor1: document.getElementById('in-bg-color1'),
@@ -486,12 +522,14 @@
                 bgColor3: document.getElementById('in-bg-color3'),
                 bgGradientDir: document.getElementById('in-bg-gradient-dir'),
                 bgOverlay: document.getElementById('in-bg-overlay'),
+                titleSize: document.getElementById('in-title-size'),
                 padding: document.getElementById('in-padding'),
 
                 // Reset buttons
                 btnResetArtistSize: document.getElementById('btn-reset-artist-size'),
                 btnResetBgScale: document.getElementById('btn-reset-bg-scale'),
                 btnResetBgOverlay: document.getElementById('btn-reset-bg-overlay'),
+                btnResetTitleSize: document.getElementById('btn-reset-title-size'),
                 btnResetPadding: document.getElementById('btn-reset-padding'),
 
                 // Outputs
@@ -618,22 +656,35 @@
                 els.textColor.addEventListener('input', updateDesignPreview);
                 els.textShadow.addEventListener('change', updateDesignPreview);
                 els.artistSize.addEventListener('input', updateArtistsPreview);
+                els.titleSize.addEventListener('input', updateDesignPreview);
                 els.padding.addEventListener('input', updateDesignPreview);
 
                 // 背景タイプの切り替え
                 els.bgTypes.forEach(radio => {
                     radio.addEventListener('change', (e) => {
+                        els.bgSettingPreset.classList.add('hidden');
                         els.bgSettingImage.classList.add('hidden');
+                        els.bgSettingScale.classList.add('hidden');
                         els.bgSettingColor.classList.add('hidden');
                         els.bgSettingGradient.classList.add('hidden');
                         
-                        if (e.target.value === 'image') els.bgSettingImage.classList.remove('hidden');
+                        if (e.target.value === 'preset') {
+                            els.bgSettingPreset.classList.remove('hidden');
+                            els.bgSettingScale.classList.remove('hidden');
+                        }
+                        if (e.target.value === 'image') {
+                            els.bgSettingImage.classList.remove('hidden');
+                            els.bgSettingScale.classList.remove('hidden');
+                        }
                         if (e.target.value === 'color') els.bgSettingColor.classList.remove('hidden');
                         if (e.target.value === 'gradient') els.bgSettingGradient.classList.remove('hidden');
                         
                         updateBackgroundPreview();
                     });
                 });
+
+                // プリセット画像の変更
+                els.bgPreset.addEventListener('change', updateBackgroundPreview);
 
                 // 背景画像のアップロード
                 els.bgImageInput.addEventListener('change', (e) => {
@@ -666,8 +717,12 @@
                     updateBackgroundPreview();
                 });
                 els.btnResetBgOverlay.addEventListener('click', () => {
-                    els.bgOverlay.value = 40;
+                    els.bgOverlay.value = 20;
                     updateBackgroundPreview();
+                });
+                els.btnResetTitleSize.addEventListener('click', () => {
+                    els.titleSize.value = 100;
+                    updateDesignPreview();
                 });
                 els.btnResetPadding.addEventListener('click', () => {
                     els.padding.value = 32;
@@ -705,7 +760,11 @@
 
             // テキスト関連の更新
             function updateTextPreview() {
-                els.outTitle.textContent = els.title.value;
+                // タイトルの改行(\n)を<br>タグに変換して反映する（XSS対策としてエスケープも実施）
+                const escapeHTML = (str) => str.replace(/[&<>'"]/g, 
+                    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag]));
+                els.outTitle.innerHTML = escapeHTML(els.title.value).replace(/\n/g, '<br>');
+
                 els.outDate.textContent = els.date.value;
                 els.outVenue.textContent = els.venue.value;
                 els.outAddress.textContent = els.address.value;
@@ -747,6 +806,9 @@
                 els.previewContent.style.color = els.textColor.value;
                 els.outTitle.style.color = els.titleColor.value;
 
+                // タイトルの文字サイズ
+                els.outTitle.style.setProperty('--title-scale', els.titleSize.value / 100);
+
                 // 全体の余白（パディング）
                 els.previewContent.style.padding = `${els.padding.value}px`;
 
@@ -762,9 +824,17 @@
                 // オーバーレイの暗さ
                 els.previewBgOverlay.style.backgroundColor = `rgba(0, 0, 0, ${els.bgOverlay.value / 100})`;
 
-                if (bgType === 'image') {
+                if (bgType === 'preset') {
                     els.previewBgImage.style.display = 'block';
                     els.previewBgContainer.style.background = 'transparent';
+                    els.previewBgImage.src = els.bgPreset.value;
+                    // 画像のスケール調整
+                    els.previewBgImage.style.transform = `translate(-50%, -50%) scale(${els.bgScale.value / 100})`;
+                }
+                else if (bgType === 'image') {
+                    els.previewBgImage.style.display = 'block';
+                    els.previewBgContainer.style.background = 'transparent';
+                    // previewBgImage.src はアップロード時に設定済み
                     // 画像のスケール調整
                     els.previewBgImage.style.transform = `translate(-50%, -50%) scale(${els.bgScale.value / 100})`;
                 } 
